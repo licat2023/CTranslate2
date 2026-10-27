@@ -1,0 +1,47 @@
+name: Windows ROCm wheels
+
+on:
+  push:
+    branches: [codex/rocm-gfx1103]
+    paths:
+      - .github/workflows/rocm-wheels.yml
+      - .github/scripts/validate_rocm_wheels.py
+      - python/**
+      - src/**
+      - include/**
+      - CMakeLists.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.repository == 'licat2023/CTranslate2'
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build Windows ROCm wheels
+        uses: pypa/cibuildwheel@v4.2.1
+        with:
+          package-dir: python
+          output-dir: python/wheelhouse
+        env:
+          CIBW_BUILD: 'cp312-win_amd64 cp313-win_amd64 cp314-win_amd64'
+          CIBW_ARCHS: AMD64
+          CIBW_ENVIRONMENT_WINDOWS: CTRANSLATE2_ROOT='${{ github.workspace }}\install'
+          CIBW_BEFORE_ALL_WINDOWS: bash python/tools/prepare_build_environment_windows_rocm.sh
+          CIBW_BEFORE_BUILD: pip install -r python/install_requirements.txt
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: ''
+      - name: Validate wheel versions and GPU targets
+        run: python .github/scripts/validate_rocm_wheels.py python/wheelhouse --version 4.8.4+rocm.gfx1103.1 --report python/wheelhouse/manifest.json
+      - uses: actions/upload-artifact@v6
+        with:
+          name: windows-rocm-wheels
+          path: python/wheelhouse
+          if-no-files-found: error
