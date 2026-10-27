@@ -9,6 +9,9 @@ on:
       - python/**
       - src/**
       - include/**
+      - cmake/**
+      - third_party/**
+      - .gitmodules
       - CMakeLists.txt
   workflow_dispatch:
 
